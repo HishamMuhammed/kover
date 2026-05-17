@@ -40,6 +40,7 @@ class ImageReader extends ConsumerWidget {
         return ReaderOverlay(
           seriesId: seriesId,
           chapterId: chapterId,
+          showProgressBar: settings.showProgressBar,
           onNextPage: () {
             settings.readDirection == .leftToRight
                 ? ref.read(navProvider.notifier).nextPage()
