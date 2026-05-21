@@ -47,15 +47,9 @@ jobs:
         if: matrix.platform == 'web'
         run: dart run tools/fetch_web_dependencies.dart
 
-      - name: MacOS Code Signing 🍎
+      - name: Disable MacOS Code Signing
         if: matrix.platform == 'macos'
-        run: |
-          cd macos
-          fastlane setup_match > /dev/null 2>&1 || (echo "Fastlane failed" && exit 1)
-        env:
-          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        run: cd macos && fastlane disable_codesign
 
       - name: Code Generation 🧬
         run: dart run build_runner build --delete-conflicting-outputs
@@ -65,10 +59,6 @@ jobs:
         run: |
           dart run drift_dev make-migrations
           git diff --exit-code -- lib test drift_schemas
-
-      - name: Remove WASM module 🧹
-        if: matrix.platform != 'web'
-        run: dart run pdfrx:remove_wasm_modules
 
       - name: Check Format 🎨
         run: dart format --output=none --set-exit-if-changed .
