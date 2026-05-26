@@ -19,8 +19,10 @@ class ReaderPage extends HookConsumerWidget {
   const ReaderPage({super.key, required this.seriesId, this.chapterId});
 
   Future<void> _exitImmersiveMode() async {
-    await SystemChrome.setEnabledSystemUIMode(.edgeToEdge);
-    await SystemChrome.restoreSystemUIOverlays();
+    await SystemChrome.setEnabledSystemUIMode(
+      .manual,
+      overlays: SystemUiOverlay.values,
+    );
   }
 
   @override
@@ -28,8 +30,8 @@ class ReaderPage extends HookConsumerWidget {
     useEffect(() {
       SystemChrome.setEnabledSystemUIMode(.immersiveSticky);
 
-      return () async {
-        await _exitImmersiveMode();
+      return () {
+        _exitImmersiveMode();
       };
     }, const []);
 
