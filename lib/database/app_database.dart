@@ -3,6 +3,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:kover/database/app_database.steps.dart';
 import 'package:kover/database/dao/book_dao.dart';
 import 'package:kover/database/dao/chapters_dao.dart';
+import 'package:kover/database/dao/collections_dao.dart';
 import 'package:kover/database/dao/download_dao.dart';
 import 'package:kover/database/dao/libraries_dao.dart';
 import 'package:kover/database/dao/reader_dao.dart';
@@ -14,6 +15,7 @@ import 'package:kover/database/dao/storage_dao.dart';
 import 'package:kover/database/dao/volumes_dao.dart';
 import 'package:kover/database/tables/book_info.dart';
 import 'package:kover/database/tables/chapters.dart';
+import 'package:kover/database/tables/collections.dart';
 import 'package:kover/database/tables/download.dart';
 import 'package:kover/database/tables/libraries.dart';
 import 'package:kover/database/tables/progress.dart';
@@ -53,6 +55,9 @@ part 'app_database.g.dart';
     WantToRead,
     DownloadedPages,
     ServerSettings,
+    Collections,
+    CollectionSeries,
+    CollectionCovers,
   ],
   daos: [
     StorageDao,
@@ -66,6 +71,7 @@ part 'app_database.g.dart';
     DownloadDao,
     RiverpodDao,
     ServerSettingsDao,
+    CollectionsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -74,7 +80,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   /// Clear all content data from the database. Does not clear app state data (e.g. credentials, settings).
   /// Useful e.g. when switching user.
@@ -123,6 +129,13 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: stepByStep(
         from1To2: (m, schema) async {
           await m.createTable(schema.serverSettings);
+        },
+        from2To3: (m, schema) async {
+          await transaction(() async {
+            await m.createTable(schema.collections);
+            await m.createTable(schema.collectionSeries);
+            await m.createTable(schema.collectionCovers);
+          });
         },
       ),
       beforeOpen: (details) async {
