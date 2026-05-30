@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:kover/database/app_database.dart';
 import 'package:kover/database/dao/volumes_dao.dart';
 import 'package:kover/database/tables/chapters.dart';
+import 'package:kover/database/tables/libraries.dart';
 import 'package:kover/database/tables/progress.dart';
 import 'package:kover/database/tables/series.dart';
 import 'package:kover/database/tables/server_settings.dart';
@@ -22,6 +23,7 @@ part 'series_dao.g.dart';
     ReadingProgress,
     WantToRead,
     ServerSettings,
+    Libraries,
   ],
 )
 class SeriesDao extends DatabaseAccessor<AppDatabase> with _$SeriesDaoMixin {
@@ -34,8 +36,24 @@ class SeriesDao extends DatabaseAccessor<AppDatabase> with _$SeriesDaoMixin {
         .watchSingle(distinct: true);
   }
 
-  /// Search series by [query]. Optionally filter by [libraryId]
-  Future<List<SeriesData>> searchSeries(
+  /// Search series by [query].
+  Future<List<SeriesData>> searchSeries(String query) async {
+    final q = managers.series
+        .filter((f) => f.libraryId.includeInSearch(true))
+        .filter(
+          (f) =>
+              f.name.contains(query) |
+              f.sortName.contains(query) |
+              f.localizedName.contains(query) |
+              f.originalName.contains(query),
+        )
+        .orderBy((o) => o.sortName.asc());
+
+    return await q.get();
+  }
+
+  /// Filter series by [query]. Optionally filter by [libraryId]
+  Future<List<SeriesData>> filterSeries(
     String query, {
     int? libraryId,
     int? collectionId,
@@ -70,19 +88,19 @@ class SeriesDao extends DatabaseAccessor<AppDatabase> with _$SeriesDaoMixin {
     q.orderBy([
       if (orderByName)
         (table) => OrderingTerm(
-          expression: table.sortName,
+          expression: series.sortName,
           mode: ascending ? .asc : .desc,
         ),
 
       if (orderByRecentlyAdded)
         (table) => OrderingTerm(
-          expression: table.created,
+          expression: series.created,
           mode: ascending ? .asc : .desc,
         ),
 
       if (orderByRecentlyUpdated)
         (table) => OrderingTerm(
-          expression: table.lastChapterAdded,
+          expression: series.lastChapterAdded,
           mode: ascending ? .asc : .desc,
         ),
     ]);
@@ -325,7 +343,12 @@ class SeriesDao extends DatabaseAccessor<AppDatabase> with _$SeriesDaoMixin {
                     readingProgress,
                     readingProgress.seriesId.equalsExp(series.id),
                   ),
+                  innerJoin(
+                    libraries,
+                    libraries.id.equalsExp(series.libraryId),
+                  ),
                 ])
+                ..where(libraries.includeInDashboard.equals(true))
                 ..addColumns([totalPagesRead, latestReadDate])
                 ..groupBy(
                   [series.id],
