@@ -7,6 +7,7 @@ import 'package:kover/database/dao/collections_dao.dart';
 import 'package:kover/database/dao/download_dao.dart';
 import 'package:kover/database/dao/libraries_dao.dart';
 import 'package:kover/database/dao/reader_dao.dart';
+import 'package:kover/database/dao/reading_lists_dao.dart';
 import 'package:kover/database/dao/riverpod_dao.dart';
 import 'package:kover/database/dao/series_dao.dart';
 import 'package:kover/database/dao/series_metadata_dao.dart';
@@ -19,6 +20,7 @@ import 'package:kover/database/tables/collections.dart';
 import 'package:kover/database/tables/download.dart';
 import 'package:kover/database/tables/libraries.dart';
 import 'package:kover/database/tables/progress.dart';
+import 'package:kover/database/tables/reading_lists.dart';
 import 'package:kover/database/tables/riverpod_storage.dart';
 import 'package:kover/database/tables/series.dart';
 import 'package:kover/database/tables/series_metadata.dart';
@@ -58,6 +60,9 @@ part 'app_database.g.dart';
     Collections,
     CollectionSeries,
     CollectionCovers,
+    ReadingLists,
+    ReadingListsChapters,
+    ReadingListCovers,
   ],
   daos: [
     StorageDao,
@@ -72,6 +77,7 @@ part 'app_database.g.dart';
     RiverpodDao,
     ServerSettingsDao,
     CollectionsDao,
+    ReadingListsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -80,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   /// Clear all content data from the database. Does not clear app state data (e.g. credentials, settings).
   /// Useful e.g. when switching user.
@@ -98,6 +104,10 @@ class AppDatabase extends _$AppDatabase {
       await delete(people).go();
       await delete(genres).go();
       await delete(tags).go();
+      await delete(collections).go();
+      await delete(collectionSeries).go();
+      await delete(readingLists).go();
+      await delete(readingListsChapters).go();
       await clearDownloads();
       await clearCovers();
     });
@@ -116,6 +126,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(chapterCovers).go();
       await delete(volumeCovers).go();
       await delete(seriesCovers).go();
+      await delete(collectionCovers).go();
+      await delete(readingListCovers).go();
     });
   }
 
@@ -128,7 +140,9 @@ class AppDatabase extends _$AppDatabase {
     return MigrationStrategy(
       onUpgrade: stepByStep(
         from1To2: (m, schema) async {
-          await m.createTable(schema.serverSettings);
+          await transaction(() async {
+            await m.createTable(schema.serverSettings);
+          });
         },
         from2To3: (m, schema) async {
           await transaction(() async {
@@ -138,18 +152,27 @@ class AppDatabase extends _$AppDatabase {
           });
         },
         from3To4: (m, schema) async {
-          await m.alterTable(
-            TableMigration(
-              schema.libraries,
-              newColumns: [
-                schema.libraries.includeInDashboard,
-                schema.libraries.includeInRecommended,
-                schema.libraries.includeInSearch,
-                schema.libraries.defaultLanguage,
-                schema.libraries.lastScanned,
-              ],
-            ),
-          );
+          await transaction(() async {
+            await m.alterTable(
+              TableMigration(
+                schema.libraries,
+                newColumns: [
+                  schema.libraries.includeInDashboard,
+                  schema.libraries.includeInRecommended,
+                  schema.libraries.includeInSearch,
+                  schema.libraries.defaultLanguage,
+                  schema.libraries.lastScanned,
+                ],
+              ),
+            );
+          });
+        },
+        from4To5: (m, schema) async {
+          await transaction(() async {
+            await m.createTable(schema.readingLists);
+            await m.createTable(schema.readingListsChapters);
+            await m.createTable(schema.readingListCovers);
+          });
         },
       ),
       beforeOpen: (details) async {

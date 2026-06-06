@@ -61,10 +61,29 @@ class ReaderRepository {
     return _db.readerDao.watchContinuePointProgress(seriesId: seriesId);
   }
 
+  /// Watch continue point for [volumeId]
   Stream<ChapterModel> watchVolumeContinuePoint({required int volumeId}) {
     return _db.readerDao
         .watchVolumeContinuePoint(volumeId: volumeId)
         .map(ChapterModel.fromDatabaseModel);
+  }
+
+  /// Watch continue point for [readingListId]
+  Stream<ChapterModel> watchReadingListContinuePoint({
+    required int readingListId,
+  }) {
+    return _db.readerDao
+        .watchReadingListContinuePoint(readingListId: readingListId)
+        .map(ChapterModel.fromDatabaseModel);
+  }
+
+  /// Watch reading progress percent for continue points of [readingListId]
+  Stream<double> watchReadingListContinuePointProgress({
+    required int readingListId,
+  }) {
+    return _db.readerDao.watchReadingListContinuePointProgress(
+      readingListId: readingListId,
+    );
   }
 
   /// Get reading progress for [chapterId]
@@ -83,12 +102,14 @@ class ReaderRepository {
     required int seriesId,
     int? volumeId,
     required int chapterId,
+    int? readingListId,
   }) {
     return _db.readerDao
         .watchPrevChapter(
           seriesId: seriesId,
           volumeId: volumeId,
           chapterId: chapterId,
+          readingListId: readingListId,
         )
         .map((c) => c != null ? ChapterModel.fromDatabaseModel(c) : null);
   }
@@ -98,12 +119,14 @@ class ReaderRepository {
     required int seriesId,
     int? volumeId,
     required int chapterId,
+    int? readingListId,
   }) {
     return _db.readerDao
         .watchNextChapter(
           seriesId: seriesId,
           volumeId: volumeId,
           chapterId: chapterId,
+          readingListId: readingListId,
         )
         .map((c) => c != null ? ChapterModel.fromDatabaseModel(c) : null);
   }

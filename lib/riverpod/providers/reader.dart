@@ -75,6 +75,26 @@ Stream<ChapterModel> volumeContinuePoint(
 }
 
 @riverpod
+Stream<ChapterModel> readingListContinuePoint(
+  Ref ref, {
+  required int readingListId,
+}) async* {
+  final repo = ref.watch(readerRepositoryProvider);
+  yield* repo.watchReadingListContinuePoint(readingListId: readingListId);
+}
+
+@riverpod
+Stream<double> readingListContinuePointProgress(
+  Ref ref, {
+  required int readingListId,
+}) async* {
+  final repo = ref.watch(readerRepositoryProvider);
+  yield* repo.watchReadingListContinuePointProgress(
+    readingListId: readingListId,
+  );
+}
+
+@riverpod
 Future<ProgressModel?> bookProgress(Ref ref, {required int chapterId}) async {
   final repo = ref.watch(readerRepositoryProvider);
   return await repo.getProgress(chapterId);
@@ -86,6 +106,7 @@ Stream<ChapterModel?> prevChapter(
   int? seriesId,
   int? volumeId,
   int? chapterId,
+  int? readingListId,
 }) async* {
   if (seriesId == null || chapterId == null) {
     yield null;
@@ -97,6 +118,7 @@ Stream<ChapterModel?> prevChapter(
         seriesId: seriesId,
         volumeId: volumeId,
         chapterId: chapterId,
+        readingListId: readingListId,
       )
       .distinct();
 }
@@ -107,6 +129,7 @@ Stream<ChapterModel?> nextChapter(
   int? seriesId,
   int? volumeId,
   int? chapterId,
+  int? readingListId,
 }) async* {
   if (seriesId == null || chapterId == null) {
     yield null;
@@ -118,6 +141,7 @@ Stream<ChapterModel?> nextChapter(
         seriesId: seriesId,
         volumeId: volumeId,
         chapterId: chapterId,
+        readingListId: readingListId,
       )
       .distinct();
 }
