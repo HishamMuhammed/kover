@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:kover/pages/reader/image_reader/zoomable_horizontal_page_image.dart';
 import 'package:kover/riverpod/providers/book.dart';
 import 'package:kover/riverpod/providers/reader//reader.dart';
 import 'package:kover/riverpod/providers/reader/reader_navigation.dart';
@@ -20,7 +21,6 @@ class HorizontalPagedReader extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPanning = useState(false);
     final provider = readerProvider(seriesId: seriesId, chapterId: chapterId);
 
     final settings = ref.watch(imageReaderSettingsProvider(seriesId: seriesId));
@@ -43,6 +43,11 @@ class HorizontalPagedReader extends HookConsumerWidget {
             final pageController = usePageController(
               initialPage: navState.currentPage,
             );
+            final isZoomed = useState(false);
+            // Number of touch pointers down. With 2+ fingers we hand the
+            // gesture to the InteractiveViewer (pinch-zoom) instead of letting
+            // the PageView's drag recognizer steal it as a page swipe.
+            final pointerCount = useState(0);
 
             ref.listen(
               navProvider.select((s) => s.whenData((s) => s.currentPage)),
@@ -77,10 +82,11 @@ class HorizontalPagedReader extends HookConsumerWidget {
               reverse: settings.readDirection == .rightToLeft,
               itemCount: reader.totalPages,
               pageSnapping: true,
-              physics: isPanning.value
+              physics: isZoomed.value || pointerCount.value >= 2
                   ? const NeverScrollableScrollPhysics()
                   : const BouncingScrollPhysics(),
               onPageChanged: (index) {
+                isZoomed.value = false; // new page starts unzoomed (ValueKey)
                 ref.read(navProvider.notifier).jumpToPage(index);
               },
               itemBuilder: (context, index) {
@@ -92,16 +98,10 @@ class HorizontalPagedReader extends HookConsumerWidget {
                     ),
                   ),
                   data: (data) {
-                    return InteractiveViewer(
-                      panEnabled: isPanning.value,
-                      onInteractionStart: (details) {
-                        if (details.pointerCount == 2) {
-                          isPanning.value = true;
-                        }
-                      },
-                      onInteractionEnd: (details) {
-                        isPanning.value = false;
-                      },
+                    return ZoomableHorizontalPageImage(
+                      key: ValueKey(index),
+                      outerController: pageController,
+                      onZoomChanged: (zoomed) => isZoomed.value = zoomed,
                       child: Image.memory(
                         data.data,
                         fit: switch (settings.scaleType) {
@@ -116,11 +116,20 @@ class HorizontalPagedReader extends HookConsumerWidget {
               },
             );
 
+            final listenedContent = Listener(
+              onPointerDown: (_) => pointerCount.value++,
+              onPointerUp: (_) =>
+                  pointerCount.value = (pointerCount.value - 1).clamp(0, 10),
+              onPointerCancel: (_) =>
+                  pointerCount.value = (pointerCount.value - 1).clamp(0, 10),
+              child: content,
+            );
+
             if (settings.ignoreSafeAreas) {
-              return content;
+              return listenedContent;
             }
 
-            return SafeArea(child: content);
+            return SafeArea(child: listenedContent);
           },
         );
       },
