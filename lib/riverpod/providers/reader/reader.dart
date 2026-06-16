@@ -89,7 +89,7 @@ class Reader extends _$Reader {
 
     _saveProgressDebounce?.cancel();
 
-    _saveProgressDebounce = Timer(500.ms, () async {
+    _saveProgressDebounce = Timer(200.ms, () async {
       log.debug(
         'saving progress',
         attributes: {
