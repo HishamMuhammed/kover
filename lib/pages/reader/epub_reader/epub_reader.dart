@@ -244,8 +244,8 @@ class _Page extends HookConsumerWidget {
                             // When reversed, physical velocity direction maps
                             // to the opposite logical scroll direction.
                             final dragVelocity = reverse
-                                ? rawVelocity
-                                : -rawVelocity;
+                                ? -rawVelocity
+                                : rawVelocity;
 
                             final position = outerController.position;
                             final metrics = notification.metrics;
@@ -259,7 +259,7 @@ class _Page extends HookConsumerWidget {
 
                             if (position is ScrollPositionWithSingleContext &&
                                 atBoundary) {
-                              position.goBallistic(dragVelocity);
+                              position.goBallistic(-dragVelocity);
                             }
                           }
 
