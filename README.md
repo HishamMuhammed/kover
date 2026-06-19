@@ -3,6 +3,11 @@
 
 # Kover
 
+[![CI](https://github.com/rodonisi/kover/actions/workflows/ci.yaml/badge.svg)](https://github.com/rodonisi/kover/actions/workflows/ci.yaml)
+[![Build & Deploy](https://github.com/rodonisi/kover/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/rodonisi/kover/actions/workflows/build-and-deploy.yml)
+<a href="https://hosted.weblate.org/engage/kover/"><img src="https://hosted.weblate.org/widget/kover/kover/svg-badge.svg" alt="Translation status"></a>
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/rodonisi/kover/total)
+
 An unofficial cross-platform [Kavita](https://www.kavitareader.com/) client.
 
 </div>
@@ -114,3 +119,17 @@ To connect Kover to a Kavita instance:
   <img src="screenshots/settings2.png" alt="Screenshot" width="220" />
   <img src="screenshots/settings3.png" alt="Screenshot" width="220" />
 </p>
+
+## Thanks
+
+<p align="center">
+  <a href="https://sentry.io">
+    <img src="./docs/assets/sentry.svg" height="50" width="169" alt="Sentry" />
+  </a>
+  <a href="https://weblate.org">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Weblate_logo.svg/1280px-Weblate_logo.svg.png" height="50" alt="Weblate" />
+  </a>
+</p>
+
+- [Sentry](https://sentry.io/) for providing an open source license for their error reporting software.
+- [Weblate](https://weblate.org/) for providing free hosting to support translations.

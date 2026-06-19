@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:kover/generated/l10n/app_localizations.dart';
 import 'package:kover/riverpod/providers/auth.dart';
 import 'package:kover/riverpod/providers/server_settings.dart';
 import 'package:kover/riverpod/providers/settings/credentials.dart';
@@ -40,6 +41,7 @@ class _CredentialsForm extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final obscureKey = useState(true);
     final urlController = useTextEditingController(text: data.url ?? '');
     final apiKeyController = useTextEditingController(text: data.apiKey ?? '');
@@ -50,14 +52,14 @@ class _CredentialsForm extends HookConsumerWidget {
       spacing: LayoutConstants.mediumPadding,
       children: [
         Text(
-          'Credentials',
+          l.credentials,
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         TextField(
           enabled: loginStatus != .loading,
           controller: urlController,
-          decoration: const InputDecoration(
-            labelText: 'Base URL',
+          decoration: InputDecoration(
+            labelText: l.baseUrl,
           ),
         ),
         TextField(
@@ -65,7 +67,7 @@ class _CredentialsForm extends HookConsumerWidget {
           enabled: loginStatus != .loading,
           controller: apiKeyController,
           decoration: InputDecoration(
-            labelText: 'API Key',
+            labelText: l.apiKey,
             suffixIcon: Padding(
               padding: const EdgeInsetsGeometry.symmetric(
                 horizontal: LayoutConstants.smallPadding,
@@ -99,7 +101,7 @@ class _CredentialsForm extends HookConsumerWidget {
                             ),
                           );
                     },
-              label: const Text('Save'),
+              label: Text(l.save),
               icon: const Icon(LucideIcons.save),
             ),
           ],
@@ -116,6 +118,7 @@ class _User extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     return switch (loginStatus) {
       LoginStatus.noCredentials => const SizedBox.shrink(),
       LoginStatus.loading => const SizedBox.square(
@@ -130,7 +133,7 @@ class _User extends ConsumerWidget {
             color: Theme.of(context).colorScheme.error,
           ),
           Text(
-            'Invalid credentials',
+            l.invalidCredentials,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.error,
             ),

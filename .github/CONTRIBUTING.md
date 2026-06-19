@@ -14,6 +14,7 @@ Thank you for your interest in contributing to Kover. This document outlines the
     - [Examples](#examples)
   - [Reporting Issues](#reporting-issues)
   - [Requesting Features & Enhancements](#requesting-features-enhancements)
+  - [Localizations](#localizations)
   - [Developing Kover](#developing-kover)
     - [Codebase Overview](#codebase-overview)
     - [Architecture](#architecture)
@@ -70,6 +71,13 @@ When creating a new feature request:
 - Include screenshots when relevant.
 
 If an idea is not yet clearly defined, consider starting a discussion instead of an issue to gather community input.
+
+---
+
+## Localizations
+
+Localization contributions are also very welcome and a great way to contribute to Kover. A Weblate project is available
+to anyone interested in increasing Kover's language support. To get started, please visit the project on [Weblate](https://hosted.weblate.org/engage/kover/)
 
 ---
 
@@ -134,6 +142,8 @@ graph LR
 - Avoid manually modifying generated code.
 - Avoid violating the architecture layer boundaries.
   - For example, UI code should not directly access the database or API, but rather go through providers and managers.
+- New text strings exposed in the UI should be added to the English localization file `lib/l10n/en.arb` and accompanied by a description for the string in
+  the respective `@` entry. No other localization files should be manually edited as those are managed through Weblate.
 
 ### Setting Up Your Development Environment
 

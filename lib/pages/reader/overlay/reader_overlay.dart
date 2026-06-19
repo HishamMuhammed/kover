@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:kover/generated/l10n/app_localizations.dart';
 import 'package:kover/pages/reader/overlay/reader_controls.dart';
 import 'package:kover/pages/reader/overlay/reader_header.dart';
 import 'package:kover/riverpod/providers/reader.dart';
@@ -60,6 +61,7 @@ class ReaderOverlay extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final uiVisible = useState(false);
     final snackbarDismissed = useState(false);
     final showSnackbar = useState(ShowSnackbar.none);
@@ -68,7 +70,6 @@ class ReaderOverlay extends HookConsumerWidget {
       chapterId: chapterId,
       readingListId: readingListId,
     );
-
     final shouldShowSnackbar =
         showSnackbar.value != ShowSnackbar.none &&
         (!snackbarDismissed.value || uiVisible.value);
@@ -210,7 +211,9 @@ class ReaderOverlay extends HookConsumerWidget {
                     alignment: .bottomCenter,
                     child:
                         ChapterSnackbar(
-                              title: 'Previous: ${prevChapter.value?.title}',
+                              title: l.previousChapter(
+                                prevChapter.value?.title ?? '',
+                              ),
                               onNavigate: () {
                                 log.debug(
                                   'navigating to previous chapter',
@@ -246,7 +249,9 @@ class ReaderOverlay extends HookConsumerWidget {
                     alignment: .bottomCenter,
                     child:
                         ChapterSnackbar(
-                              title: 'Next: ${nextChapter.value?.title}',
+                              title: l.nextChapter(
+                                nextChapter.value?.title ?? '',
+                              ),
                               onNavigate: () {
                                 log.debug(
                                   'navigating to next chapter',
@@ -400,6 +405,7 @@ class ChapterSnackbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return SafeArea(
       child: Card.filled(
         margin: LayoutConstants.mediumEdgeInsets,
@@ -416,10 +422,10 @@ class ChapterSnackbar extends StatelessWidget {
                 ),
               ),
               if (onDismiss != null)
-                TextButton(onPressed: onDismiss, child: const Text('Dismiss')),
+                TextButton(onPressed: onDismiss, child: Text(l.dismiss)),
               FilledButton(
                 onPressed: onNavigate,
-                child: const Text('Go'),
+                child: Text(l.go),
               ),
             ],
           ),
