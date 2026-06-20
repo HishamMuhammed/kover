@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:kover/generated/l10n/app_localizations.dart';
-import 'package:kover/models/read_direction.dart';
+import 'package:kover/riverpod/providers/settings/common_reader_settings.dart';
 import 'package:kover/riverpod/providers/settings/epub_reader_settings.dart';
-import 'package:kover/utils/constants/kover_icons.dart';
 import 'package:kover/utils/layout_constants.dart';
 import 'package:kover/widgets/settings/boolean_option.dart';
-import 'package:kover/widgets/settings/choice_option.dart';
 import 'package:kover/widgets/settings/numeric_option.dart';
+import 'package:kover/widgets/settings/reader/orientation_option.dart';
+import 'package:kover/widgets/settings/reader/progress_bar_option.dart';
+import 'package:kover/widgets/settings/reader/read_direction_option.dart';
 import 'package:kover/widgets/util/async_value.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -18,10 +19,11 @@ class EpubReaderSettingsBottomSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final provider = epubReaderSettingsProvider(seriesId: seriesId);
+    final epubSettings = epubReaderSettingsProvider(seriesId: seriesId);
+    final commonSettings = commonReaderSettingsProvider(seriesId: seriesId);
 
     return Async(
-      asyncValue: ref.watch(provider),
+      asyncValue: ref.watch(epubSettings),
       data: (settings) {
         return Column(
           mainAxisSize: .min,
@@ -43,32 +45,7 @@ class EpubReaderSettingsBottomSheet extends ConsumerWidget {
                         l.readerSettings,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      ChoiceOption(
-                        title: l.readingDirection,
-                        icon: settings.readDirection == .leftToRight
-                            ? LucideIcons.chevronsRight
-                            : LucideIcons.chevronsLeft,
-                        value: settings.readDirection,
-                        options: [
-                          ChoiceOptionEntry<ReadDirection>(
-                            value: ReadDirection.leftToRight,
-                            label: l.leftToRight,
-                            icon: LucideIcons.chevronsRight,
-                          ),
-                          ChoiceOptionEntry<ReadDirection>(
-                            value: ReadDirection.rightToLeft,
-                            label: l.rightToLeft,
-                            icon: LucideIcons.chevronsLeft,
-                          ),
-                        ],
-                        onChanged: (newValue) async {
-                          if (newValue != settings.readDirection) {
-                            await ref
-                                .read(provider.notifier)
-                                .toggleReadDirection();
-                          }
-                        },
-                      ),
+                      ReadDirectionOption(seriesId: seriesId),
                       NumericOption(
                         title: l.fontSize,
                         icon: LucideIcons.aLargeSmallDir,
@@ -78,7 +55,7 @@ class EpubReaderSettingsBottomSheet extends ConsumerWidget {
                         step: EpubReaderSettingsLimits.fontSizeStep,
                         decimalPlaces: 0,
                         onChanged: (newValue) async => await ref
-                            .read(provider.notifier)
+                            .read(epubSettings.notifier)
                             .setFontSize(newValue),
                       ),
                       NumericOption(
@@ -90,7 +67,7 @@ class EpubReaderSettingsBottomSheet extends ConsumerWidget {
                         step: EpubReaderSettingsLimits.marginSizeStep,
                         decimalPlaces: 0,
                         onChanged: (newValue) async => await ref
-                            .read(provider.notifier)
+                            .read(epubSettings.notifier)
                             .setMarginSize(newValue),
                       ),
 
@@ -102,7 +79,7 @@ class EpubReaderSettingsBottomSheet extends ConsumerWidget {
                         max: EpubReaderSettingsLimits.lineHeightMax,
                         step: EpubReaderSettingsLimits.lineHeightStep,
                         onChanged: (newValue) async => await ref
-                            .read(provider.notifier)
+                            .read(epubSettings.notifier)
                             .setLineHeight(newValue),
                       ),
                       NumericOption(
@@ -112,7 +89,7 @@ class EpubReaderSettingsBottomSheet extends ConsumerWidget {
                         max: EpubReaderSettingsLimits.wordSpacingMax,
                         step: EpubReaderSettingsLimits.wordSpacingStep,
                         onChanged: (newValue) async => await ref
-                            .read(provider.notifier)
+                            .read(epubSettings.notifier)
                             .setWordSpacing(newValue),
                         icon: LucideIcons.listMinus,
                       ),
@@ -124,29 +101,21 @@ class EpubReaderSettingsBottomSheet extends ConsumerWidget {
                         max: EpubReaderSettingsLimits.letterSpacingMax,
                         step: EpubReaderSettingsLimits.letterSpacingStep,
                         onChanged: (newValue) async => await ref
-                            .read(provider.notifier)
+                            .read(epubSettings.notifier)
                             .setLetterSpacing(newValue),
                       ),
+                      OrientationOption(seriesId: seriesId),
                       BooleanOption(
                         icon: LucideIcons.highlighter,
                         title: l.highlightResumeParagraph,
                         value: settings.highlightResumePoint,
                         onChanged: (value) async {
                           await ref
-                              .read(provider.notifier)
+                              .read(epubSettings.notifier)
                               .setHighlightResumePoint(value);
                         },
                       ),
-                      BooleanOption(
-                        icon: KoverIcons.progressBar,
-                        title: l.showProgressBar,
-                        value: settings.showProgressBar,
-                        onChanged: (value) async {
-                          await ref
-                              .read(provider.notifier)
-                              .setShowProgressBar(value);
-                        },
-                      ),
+                      ProgressBarOption(seriesId: seriesId),
                     ],
                   ),
                 ),
@@ -167,16 +136,20 @@ class EpubReaderSettingsBottomSheet extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: FilledButton.tonalIcon(
-                      onPressed: () async =>
-                          await ref.read(provider.notifier).setDefault(),
+                      onPressed: () async {
+                        await ref.read(epubSettings.notifier).setDefault();
+                        await ref.read(commonSettings.notifier).setDefault();
+                      },
                       icon: const Icon(LucideIcons.save),
                       label: Text(l.setDefaults),
                     ),
                   ),
                   Expanded(
                     child: FilledButton.tonalIcon(
-                      onPressed: () async =>
-                          await ref.read(provider.notifier).reset(),
+                      onPressed: () async {
+                        await ref.read(epubSettings.notifier).reset();
+                        await ref.read(commonSettings.notifier).reset();
+                      },
                       icon: const Icon(LucideIcons.rotateCcw),
                       label: Text(l.reset),
                     ),
