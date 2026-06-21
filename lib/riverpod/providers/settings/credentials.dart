@@ -13,6 +13,7 @@ sealed class CredentialsState with _$CredentialsState {
   const factory CredentialsState({
     String? url,
     String? apiKey,
+    @Default({}) Map<String, String> customHeaders,
   }) = _CredentialsState;
 
   factory CredentialsState.fromJson(Map<String, Object?> json) =>
@@ -37,8 +38,34 @@ class Credentials extends _$Credentials {
 
   void updateCredentials(CredentialsState settings) {
     state = AsyncValue.data(settings);
-    // Trigger re-validation by invalidating the current user provider
-    ref.invalidate(currentUserProvider);
+  }
+
+  Future<void> addHeader(String key, String value) async {
+    final trimmedKey = key.trim();
+    final trimmedValue = value.trim();
+    if (trimmedKey.isEmpty || trimmedValue.isEmpty) return;
+
+    final current = await future;
+
+    final updatedHeaders = {
+      ...current.customHeaders,
+      trimmedKey: trimmedValue,
+    };
+    updateCredentials(current.copyWith(customHeaders: updatedHeaders));
+  }
+
+  Future<void> removeHeader(String key) async {
+    final current = await future;
+
+    final updatedHeaders = Map<String, String>.from(current.customHeaders)
+      ..remove(key);
+    updateCredentials(current.copyWith(customHeaders: updatedHeaders));
+  }
+
+  Future<void> removeAllHeaders() async {
+    final current = await future;
+
+    updateCredentials(current.copyWith(customHeaders: {}));
   }
 }
 
