@@ -43,6 +43,7 @@ class DownloadManager extends _$DownloadManager {
     _listenConnectivity();
     _listenAppLifecycle();
     _listenSyncManager();
+    _listenDownloadSettings();
 
     await persist(ref.watch(storageProvider.future)).future;
 
@@ -151,26 +152,29 @@ class DownloadManager extends _$DownloadManager {
       return;
     }
 
-    final concurrentDownloads = (await ref.watch(
-      downloadSettingsProvider.future,
-    )).concurrentDownloads;
+    final current = await future;
 
-    while (_activeTasks.length < concurrentDownloads &&
-        (state.value?.downloadQueue.isNotEmpty ?? false)) {
-      final nextId = state.value!.downloadQueue
-          .where((i) => !_activeTasks.containsKey(i))
-          .firstOrNull;
+    final concurrentDownloads = await ref.read(
+      downloadSettingsProvider.selectAsync(
+        (state) => state.concurrentDownloads,
+      ),
+    );
 
-      if (nextId == null) break;
+    final activeCount = _activeTasks.length;
 
-      log.debug(
+    final toStart = current.downloadQueue
+        .where((i) => !_activeTasks.containsKey(i))
+        .take(concurrentDownloads - activeCount);
+
+    for (final chapterId in toStart) {
+      log.info(
         'starting download for chapter',
         attributes: {
-          'chapter_id': .int(nextId),
+          'chapter_id': .int(chapterId),
         },
       );
 
-      await _startDownload(nextId);
+      unawaited(_startDownload(chapterId));
     }
   }
 
@@ -213,15 +217,18 @@ class DownloadManager extends _$DownloadManager {
     } finally {
       _activeTasks.remove(chapterId);
 
-      log.debug(
-        'download completed for chapter',
-        attributes: {
-          'chapterId': .int(chapterId),
-        },
-      );
-      final current = await future;
-      final newQueue = Set<int>.from(current.downloadQueue)..remove(chapterId);
-      state = AsyncData(current.copyWith(downloadQueue: newQueue));
+      if (!task.isCanceled) {
+        log.info(
+          'download completed for chapter',
+          attributes: {
+            'chapterId': .int(chapterId),
+          },
+        );
+        final current = await future;
+        final newQueue = Set<int>.from(current.downloadQueue)
+          ..remove(chapterId);
+        state = AsyncData(current.copyWith(downloadQueue: newQueue));
+      }
     }
   }
 
@@ -269,5 +276,19 @@ class DownloadManager extends _$DownloadManager {
     );
     WidgetsBinding.instance.addObserver(observer);
     ref.onDispose(() => WidgetsBinding.instance.removeObserver(observer));
+  }
+
+  void _listenDownloadSettings() {
+    ref.listen(
+      downloadSettingsProvider,
+      (prev, next) async {
+        next.whenData((next) async {
+          if (next.concurrentDownloads != prev?.value?.concurrentDownloads) {
+            await _clearActiveTasks();
+            await _processQueue();
+          }
+        });
+      },
+    );
   }
 }
