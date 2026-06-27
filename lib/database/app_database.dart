@@ -25,10 +25,12 @@ import 'package:kover/database/tables/riverpod_storage.dart';
 import 'package:kover/database/tables/series.dart';
 import 'package:kover/database/tables/series_metadata.dart';
 import 'package:kover/database/tables/server_settings.dart';
+import 'package:kover/database/tables/sidenav.dart';
 import 'package:kover/database/tables/volumes.dart';
 import 'package:kover/database/tables/want_to_read.dart';
 import 'package:kover/models/enums/format.dart';
 import 'package:kover/models/enums/library_type.dart';
+import 'package:kover/models/enums/sidenav_stream_type.dart';
 import 'package:kover/riverpod/providers/settings/credentials.dart';
 import 'package:kover/utils/logging.dart';
 import 'package:path_provider/path_provider.dart';
@@ -63,6 +65,7 @@ part 'app_database.g.dart';
     ReadingLists,
     ReadingListsChapters,
     ReadingListCovers,
+    Sidenav,
   ],
   daos: [
     StorageDao,
@@ -86,7 +89,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   /// Clear all content data from the database. Does not clear app state data (e.g. credentials, settings).
   /// Useful e.g. when switching user.
@@ -173,6 +176,11 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(schema.readingLists);
             await m.createTable(schema.readingListsChapters);
             await m.createTable(schema.readingListCovers);
+          });
+        },
+        from5To6: (m, schema) async {
+          await transaction(() async {
+            await m.createTable(schema.sidenav);
           });
         },
       ),
