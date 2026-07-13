@@ -7,6 +7,7 @@ import 'package:kover/pages/reader/overlay/page_slider.dart';
 import 'package:kover/pages/reader/pdf_reader/pdf_reader_controls.dart';
 import 'package:kover/riverpod/providers/reader//reader.dart';
 import 'package:kover/riverpod/providers/reader/reader_navigation.dart';
+import 'package:kover/riverpod/providers/theme.dart';
 import 'package:kover/utils/layout_constants.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -80,13 +81,24 @@ class ReaderControls extends HookConsumerWidget {
   }
 }
 
-class ReaderSettingsButton extends StatelessWidget {
+class ReaderSettingsButton extends ConsumerWidget {
   final Widget child;
   const ReaderSettingsButton({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final reduceAnimations = ref.watch(
+      themeProvider.select(
+        (value) =>
+            value.value?.reduceAnimations ??
+            const ThemeModel().reduceAnimations,
+      ),
+    );
+    final animation = reduceAnimations
+        ? const AnimationStyle(duration: .zero, reverseDuration: .zero)
+        : null;
+
     return IconButton(
       icon: const Icon(LucideIcons.slidersHorizontal),
       tooltip: l.readerSettings,
@@ -100,6 +112,7 @@ class ReaderSettingsButton extends StatelessWidget {
             maxHeight: MediaQuery.sizeOf(context).height * 0.85,
             maxWidth: LayoutBreakpoints.medium,
           ),
+          sheetAnimationStyle: animation,
           builder: (context) => child,
         );
       },

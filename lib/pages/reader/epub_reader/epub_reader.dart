@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -9,7 +8,9 @@ import 'package:kover/pages/reader/overlay/reader_overlay.dart';
 import 'package:kover/riverpod/providers/reader/epub_reader.dart';
 import 'package:kover/riverpod/providers/settings/common_reader_settings.dart';
 import 'package:kover/riverpod/providers/settings/epub_reader_settings.dart';
+import 'package:kover/riverpod/providers/theme.dart' hide Theme;
 import 'package:kover/utils/cached_image_factory.dart';
+import 'package:kover/utils/layout_constants.dart';
 import 'package:kover/widgets/util/async_value.dart';
 
 class EpubReader extends HookConsumerWidget {
@@ -34,6 +35,16 @@ class EpubReader extends HookConsumerWidget {
 
     final commonSettings = ref.watch(
       commonReaderSettingsProvider(seriesId: seriesId),
+    );
+
+    final reduceAnimations = ref.watch(
+      themeProvider.select(
+        (value) =>
+            value.whenOrNull(
+              data: (data) => data.reduceAnimations,
+            ) ??
+            const ThemeModel().reduceAnimations,
+      ),
     );
 
     return Async(
@@ -84,10 +95,10 @@ class EpubReader extends HookConsumerWidget {
                         previousPage != null &&
                         (nextPage - previousPage).abs() == 1;
 
-                    isSequential
+                    isSequential && !reduceAnimations
                         ? controller.animateToPage(
                             nextPage,
-                            duration: 200.ms,
+                            duration: LayoutConstants.pageSlideDuration,
                             curve: Curves.easeInOut,
                           )
                         : controller.jumpToPage(nextPage);
@@ -213,6 +224,16 @@ class _Page extends HookConsumerWidget {
       ),
     );
 
+    final reduceAnimations = ref.watch(
+      themeProvider.select(
+        (value) =>
+            value.whenOrNull(
+              data: (data) => data.reduceAnimations,
+            ) ??
+            const ThemeModel().reduceAnimations,
+      ),
+    );
+
     return Stack(
       children: [
         if (reflow.value?.status != .done)
@@ -239,7 +260,7 @@ class _Page extends HookConsumerWidget {
                   final controller = usePageController(
                     initialPage: navState.subpage,
                   );
-                  final scrollPhysics = navigationGestures
+                  final scrollPhysics = navigationGestures && !reduceAnimations
                       ? const AlwaysScrollableScrollPhysics(
                           parent: ClampingScrollPhysics(),
                         )
@@ -265,10 +286,10 @@ class _Page extends HookConsumerWidget {
                             previousSubpage != null &&
                             (nextSubpage - previousSubpage).abs() == 1;
 
-                        isSequential
+                        isSequential && !reduceAnimations
                             ? controller.animateToPage(
                                 nextSubpage,
-                                duration: 200.ms,
+                                duration: LayoutConstants.pageSlideDuration,
                                 curve: Curves.easeInOut,
                               )
                             : controller.jumpToPage(nextSubpage);

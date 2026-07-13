@@ -11,6 +11,7 @@ import 'package:kover/riverpod/providers/reader/reader.dart';
 import 'package:kover/riverpod/providers/reader/reader_navigation.dart';
 import 'package:kover/riverpod/providers/settings/common_reader_settings.dart';
 import 'package:kover/riverpod/providers/settings/pdf_reader_settings.dart';
+import 'package:kover/riverpod/providers/theme.dart';
 import 'package:kover/utils/layout_constants.dart';
 import 'package:kover/widgets/util/async_value.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -77,6 +78,15 @@ class PdfReader extends HookConsumerWidget {
     final commonSettings = ref.watch(
       commonReaderSettingsProvider(seriesId: seriesId),
     );
+    final reduceAnimations = ref.watch(
+      themeProvider.select(
+        (value) =>
+            value.whenOrNull(
+              data: (data) => data.reduceAnimations,
+            ) ??
+            const ThemeModel().reduceAnimations,
+      ),
+    );
     final pdf = ref.watch(pdfProvider(chapterId: chapterId));
 
     ref.listen(navProvider, (previous, next) async {
@@ -85,7 +95,12 @@ class PdfReader extends HookConsumerWidget {
 
         if (previous?.value?.currentPage != next.currentPage) {
           lastUpdateFromProvider.value = true;
-          await controller.goToPage(pageNumber: next.currentPage + 1);
+          await controller.goToPage(
+            pageNumber: next.currentPage + 1,
+            duration: reduceAnimations
+                ? .zero
+                : LayoutConstants.pageSlideDuration,
+          );
         }
       });
     });
@@ -133,7 +148,8 @@ class PdfReader extends HookConsumerWidget {
             asyncValue: pdf,
             data: (data) {
               final scrollPhysics =
-                  commonSettings.navigationGersturesEnabled ||
+                  (commonSettings.navigationGersturesEnabled &&
+                          !reduceAnimations) ||
                       settings.readerMode == .vertical
                   ? null
                   : const NeverScrollableScrollPhysics();
