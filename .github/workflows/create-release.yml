@@ -133,10 +133,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+          working-directory: ios
+
       - name: Promote Testflight Public
         run: |
           cd ios
-          fastlane public_beta
+          bundle exec fastlane public_beta
         env:
           CHANGELOG: ${{ needs.get-release-body.outputs.release_body }}
           APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
@@ -151,10 +157,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+          working-directory: macos
+
       - name: Promote Testflight Public
         run: |
           cd macos
-          fastlane public_beta
+          bundle exec fastlane public_beta
         env:
           CHANGELOG: ${{ needs.get-release-body.outputs.release_body }}
           APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
@@ -181,7 +193,13 @@ jobs:
           service_account: ${{ secrets.GOOGLE_CLOUD_SERVICE_ACCOUNT }}
           create_credentials_file: true
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+          working-directory: android
+
       - name: Promote Google Play
         run: |
           cd android
-          fastlane promote_beta_tracks
+          bundle exec fastlane promote_beta_tracks
