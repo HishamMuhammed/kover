@@ -62,12 +62,14 @@ jobs:
             --build-number=${{ github.run_number }} \
             --dart-define="SENTRY_DSN=${{ vars.SENTRY_DSN }}"
 
-      - name: Download linuxdeploy & AppImage plugin (stable versions)
+      - name: Download linuxdeploy & AppImage plugin (STABLE versions)
         run: |
           cd build/linux/x64/release/bundle
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage
+          # Use specific stable versions instead of broken 'continuous'
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-x86_64.AppImage
           chmod +x linuxdeploy-*.AppImage
+          # Verify they work
           ./linuxdeploy-x86_64.AppImage --version
           ./linuxdeploy-plugin-appimage-x86_64.AppImage --version
           mv linuxdeploy-plugin-appimage-x86_64.AppImage linuxdeploy-plugin-appimage
