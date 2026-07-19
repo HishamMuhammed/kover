@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>kover</id>
+    <name>Kover</name>
+    <summary>An unofficial cross-platform Kavita client</summary>
+    <description>
+        <p>Kover is an unofficial cross-platform Kavita frontend built with Flutter.</p>
+    </description>
+    <launchable type="desktop-id">kover.desktop</launchable>
+    <icon type="local">kover</icon>
+    <url type="homepage">https://github.com/rodonisi/kover</url>
+    <url type="bugtracker">https://github.com/rodonisi/kover/issues</url>
+    <url type="donate">https://github.com/sponsors/rodonisi</url>
+    <provides>
+        <binary>kover</binary>
+    </provides>
+    <project_license>Apache-2.0</project_license>
+    <developer_name>rodonisi</developer_name>
+</component>

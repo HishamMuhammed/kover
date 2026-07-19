@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Kover
+Comment=An unofficial cross-platform Kavita client
+Exec=kover
+Icon=kover
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Video;Network;
+StartupNotify=true

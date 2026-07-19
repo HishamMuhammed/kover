@@ -1,17 +1,28 @@
 name: Build Linux AppImage
 
 on:
-  release:
-    types: [published]
-
-permissions:
-  contents: write
+  workflow_call:
+    inputs:
+      version:
+        description: 'Release version (e.g., 0.14.0)'
+        required: true
+        type: string
+      build_number:
+        description: 'Build number (GitHub run number)'
+        required: true
+        type: string
+    outputs:
+      appimage_path:
+        description: 'Path to the built AppImage'
+        value: ${{ jobs.build-linux-appimage.outputs.appimage_path }}
 
 jobs:
   build-linux-appimage:
     name: Build Linux AppImage
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      appimage_path: ${{ steps.appimage.outputs.appimage_path }}
 
     steps:
       - name: Checkout repository
@@ -38,19 +49,10 @@ jobs:
             libgtk-3-dev \
             libsecret-1-dev \
             libcurl4-openssl-dev \
-            liblzma-dev \
             patchelf \
             desktop-file-utils \
             libfuse2 \
-            libfuse3-dev \
-            fuse \
             rpm
-
-      - name: Get version from release tag
-        id: version
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Install dependencies & generate code
         run: |
@@ -61,17 +63,28 @@ jobs:
       - name: Build Linux release
         run: |
           flutter build linux --release \
-            --build-name=${{ steps.version.outputs.version }} \
-            --build-number=${{ github.run_number }} \
+            --build-name=${{ inputs.version }} \
+            --build-number=${{ inputs.build_number }} \
             --dart-define="SENTRY_DSN=${{ vars.SENTRY_DSN }}"
 
-      - name: Download linuxdeploy & AppImage plugin
+      - name: Download linuxdeploy & AppImage plugin (stable versions)
         run: |
           cd build/linux/x64/release/bundle
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ]; then
+            LINUXDEPLOY_ARCH="aarch64"
+            PLUGIN_ARCH="aarch64"
+          else
+            LINUXDEPLOY_ARCH="x86_64"
+            PLUGIN_ARCH="x86_64"
+          fi
+          echo "Building for architecture: $ARCH"
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-${LINUXDEPLOY_ARCH}.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-${PLUGIN_ARCH}.AppImage
           chmod +x linuxdeploy-*.AppImage
-          mv linuxdeploy-plugin-appimage-x86_64.AppImage linuxdeploy-plugin-appimage
+          ./linuxdeploy-${LINUXDEPLOY_ARCH}.AppImage --version
+          ./linuxdeploy-plugin-appimage-${PLUGIN_ARCH}.AppImage --version
+          mv linuxdeploy-plugin-appimage-${PLUGIN_ARCH}.AppImage linuxdeploy-plugin-appimage
 
       - name: Create AppDir structure
         run: |
@@ -86,66 +99,42 @@ jobs:
           cp kover AppDir/usr/bin/
           cp -r data AppDir/usr/bin/
 
-          cat > AppDir/usr/share/applications/kover.desktop << 'EOF'
-          [Desktop Entry]
-          Name=Kover
-          Comment=An unofficial cross-platform Kavita client
-          Exec=kover
-          Icon=kover
-          Terminal=false
-          Type=Application
-          Categories=AudioVideo;Audio;Video;Network;
-          StartupNotify=true
-          EOF
-
+          cp ../../../../../linux/kover.desktop AppDir/usr/share/applications/kover.desktop
           cp ../../../../../assets/icon/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/kover.png
-
-          cat > AppDir/usr/share/metainfo/kover.metainfo.xml << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <component type="desktop-application">
-            <id>kover</id>
-            <name>Kover</name>
-            <summary>An unofficial cross-platform Kavita client</summary>
-            <description>
-              <p>Kover is an unofficial cross-platform Kavita frontend built with Flutter.</p>
-            </description>
-            <launchable type="desktop-id">kover.desktop</launchable>
-            <icon type="local">kover</icon>
-            <url type="homepage">https://github.com/rodonisi/kover</url>
-            <url type="bugtracker">https://github.com/rodonisi/kover/issues</url>
-            <url type="donate">https://github.com/sponsors/rodonisi</url>
-            <provides>
-              <binary>kover</binary>
-            </provides>
-            <project_license>MIT</project_license>
-            <developer_name>rodonisi</developer_name>
-          </component>
-          EOF
+          cp ../../../../../linux/kover.metainfo.xml AppDir/usr/share/metainfo/kover.metainfo.xml
 
       - name: Build AppImage
         run: |
           cd build/linux/x64/release/bundle
           export PATH=".:$PATH"
-          ./linuxdeploy-x86_64.AppImage \
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ]; then
+            LINUXDEPLOY_BIN="linuxdeploy-aarch64.AppImage"
+          else
+            LINUXDEPLOY_BIN="linuxdeploy-x86_64.AppImage"
+          fi
+          echo "=== AppDir structure ==="
+          find AppDir -type f | head -30
+          echo "=== Running linuxdeploy ==="
+          ./$LINUXDEPLOY_BIN \
             --appdir AppDir \
             --plugin appimage \
             --output appimage \
             --desktop-file AppDir/usr/share/applications/kover.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/kover.png
         env:
-          VERSION: ${{ steps.version.outputs.version }}
           APPIMAGE_EXTRACT_AND_RUN: 1
 
       - name: Rename AppImage
         run: |
           cd build/linux/x64/release/bundle
-          mv Kover-*.AppImage "Kover-${{ steps.version.outputs.version }}-x86_64.AppImage"
-          echo "APPIMAGE_PATH=build/linux/x64/release/bundle/Kover-${{ steps.version.outputs.version }}-x86_64.AppImage" >> $GITHUB_OUTPUT
+          ARCH=$(uname -m)
+          mv Kover-*.AppImage "Kover-${{ inputs.version }}-${ARCH}.AppImage"
+          echo "appimage_path=build/linux/x64/release/bundle/Kover-${{ inputs.version }}-${ARCH}.AppImage" >> $GITHUB_OUTPUT
         id: appimage
 
-      - name: Upload AppImage to Release
-        uses: softprops/action-gh-release@v3
+      - name: Upload AppImage as artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: ${{ steps.appimage.outputs.APPIMAGE_PATH }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: kover-linux-appimage
+          path: ${{ steps.appimage.outputs.appimage_path }}
