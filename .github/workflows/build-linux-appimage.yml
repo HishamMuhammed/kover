@@ -39,13 +39,6 @@ jobs:
             libsecret-1-dev \
             libcurl4-openssl-dev \
             liblzma-dev \
-            libayatana-appindicator3-dev \
-            libblkid-dev \
-            libmount-dev \
-            libdbus-1-dev \
-            libgdk-pixbuf-2.0-dev \
-            librsvg2-dev \
-            libappindicator3-dev \
             patchelf \
             desktop-file-utils \
             libfuse2 \
