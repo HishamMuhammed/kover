@@ -119,16 +119,24 @@ jobs:
           </component>
           EOF
 
-      - name: Build AppImage
+      - name: Build AppImage (with debug)
         run: |
           cd build/linux/x64/release/bundle
           export PATH=".:$PATH"
+          echo "=== linuxdeploy version ==="
+          ./linuxdeploy-x86_64.AppImage --version || true
+          echo "=== Plugin found ==="
+          ls -la linuxdeploy-plugin-appimage
+          echo "=== AppDir structure ==="
+          find AppDir -type f | head -30
+          echo "=== Running linuxdeploy ==="
           ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
             --plugin appimage \
             --output appimage \
             --desktop-file AppDir/usr/share/applications/kover.desktop \
-            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/kover.png
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/kover.png \
+            --verbose
         env:
           VERSION: ${{ steps.version.outputs.version }}
           APPIMAGE_EXTRACT_AND_RUN: 1
