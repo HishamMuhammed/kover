@@ -62,12 +62,14 @@ jobs:
             --build-number=${{ github.run_number }} \
             --dart-define="SENTRY_DSN=${{ vars.SENTRY_DSN }}"
 
-      - name: Download linuxdeploy & AppImage plugin
+      - name: Download linuxdeploy & AppImage plugin (stable versions)
         run: |
           cd build/linux/x64/release/bundle
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage
           chmod +x linuxdeploy-*.AppImage
+          ./linuxdeploy-x86_64.AppImage --version
+          ./linuxdeploy-plugin-appimage-x86_64.AppImage --version
           mv linuxdeploy-plugin-appimage-x86_64.AppImage linuxdeploy-plugin-appimage
 
       - name: Create AppDir structure
@@ -119,14 +121,10 @@ jobs:
           </component>
           EOF
 
-      - name: Build AppImage (with debug)
+      - name: Build AppImage
         run: |
           cd build/linux/x64/release/bundle
           export PATH=".:$PATH"
-          echo "=== linuxdeploy version ==="
-          ./linuxdeploy-x86_64.AppImage --version || true
-          echo "=== Plugin found ==="
-          ls -la linuxdeploy-plugin-appimage
           echo "=== AppDir structure ==="
           find AppDir -type f | head -30
           echo "=== Running linuxdeploy ==="
@@ -135,8 +133,7 @@ jobs:
             --plugin appimage \
             --output appimage \
             --desktop-file AppDir/usr/share/applications/kover.desktop \
-            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/kover.png \
-            --verbose
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/kover.png
         env:
           VERSION: ${{ steps.version.outputs.version }}
           APPIMAGE_EXTRACT_AND_RUN: 1
