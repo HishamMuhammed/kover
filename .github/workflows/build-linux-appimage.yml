@@ -1,0 +1,158 @@
+name: Build Linux AppImage
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux-appimage:
+    name: Build Linux AppImage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get FVM Configuration
+        uses: kuhnroyal/flutter-fvm-config-action@v3
+        id: fvm-config-action
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          channel: ${{ steps.fvm-config-action.outputs.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            ninja-build \
+            libgtk-3-dev \
+            libsecret-1-dev \
+            libcurl4-openssl-dev \
+            liblzma-dev \
+            libayatana-appindicator3-dev \
+            libblkid-dev \
+            libmount-dev \
+            libdbus-1-dev \
+            libgdk-pixbuf-2.0-dev \
+            librsvg2-dev \
+            libappindicator3-dev \
+            patchelf \
+            desktop-file-utils \
+            libfuse2 \
+            libfuse3-dev \
+            fuse \
+            rpm
+
+      - name: Get version from release tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies & generate code
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
+
+      - name: Build Linux release
+        run: |
+          flutter build linux --release \
+            --build-name=${{ steps.version.outputs.version }} \
+            --build-number=${{ github.run_number }} \
+            --dart-define="SENTRY_DSN=${{ vars.SENTRY_DSN }}"
+
+      - name: Download linuxdeploy & AppImage plugin
+        run: |
+          cd build/linux/x64/release/bundle
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage
+          chmod +x linuxdeploy-*.AppImage
+          mv linuxdeploy-plugin-appimage-x86_64.AppImage linuxdeploy-plugin-appimage
+
+      - name: Create AppDir structure
+        run: |
+          cd build/linux/x64/release/bundle
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/lib
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/share/metainfo
+
+          cp -r lib/* AppDir/usr/lib/
+          cp kover AppDir/usr/bin/
+          cp -r data AppDir/usr/bin/   # <-- CRITICAL: Flutter assets
+
+          cat > AppDir/usr/share/applications/kover.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Kover
+          Comment=An unofficial cross-platform Kavita client
+          Exec=kover
+          Icon=kover
+          Terminal=false
+          Type=Application
+          Categories=AudioVideo;Audio;Video;Network;
+          StartupNotify=true
+          EOF
+
+          cp ../../../../../assets/icon/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/kover.png
+
+          cat > AppDir/usr/share/metainfo/kover.metainfo.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <component type="desktop-application">
+            <id>kover</id>
+            <name>Kover</name>
+            <summary>An unofficial cross-platform Kavita client</summary>
+            <description>
+              <p>Kover is an unofficial cross-platform Kavita frontend built with Flutter.</p>
+            </description>
+            <launchable type="desktop-id">kover.desktop</launchable>
+            <icon type="local">kover</icon>
+            <url type="homepage">https://github.com/rodonisi/kover</url>
+            <url type="bugtracker">https://github.com/rodonisi/kover/issues</url>
+            <url type="donate">https://github.com/sponsors/rodonisi</url>
+            <provides>
+              <binary>kover</binary>
+            </provides>
+            <project_license>MIT</project_license>
+            <developer_name>rodonisi</developer_name>
+          </component>
+          EOF
+
+      - name: Build AppImage
+        run: |
+          cd build/linux/x64/release/bundle
+          export PATH=".:$PATH"
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --plugin appimage \
+            --output appimage \
+            --desktop-file AppDir/usr/share/applications/kover.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/kover.png
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          APPIMAGE_EXTRACT_AND_RUN: 1
+
+      - name: Rename AppImage
+        run: |
+          cd build/linux/x64/release/bundle
+          mv Kover-*.AppImage "Kover-${{ steps.version.outputs.version }}-x86_64.AppImage"
+          echo "APPIMAGE_PATH=build/linux/x64/release/bundle/Kover-${{ steps.version.outputs.version }}-x86_64.AppImage" >> $GITHUB_OUTPUT
+        id: appimage
+
+      - name: Upload AppImage to Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: ${{ steps.appimage.outputs.APPIMAGE_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
