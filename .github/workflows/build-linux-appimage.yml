@@ -62,17 +62,26 @@ jobs:
             --build-number=${{ github.run_number }} \
             --dart-define="SENTRY_DSN=${{ vars.SENTRY_DSN }}"
 
-      - name: Download linuxdeploy & AppImage plugin (STABLE versions)
+      - name: Download linuxdeploy & AppImage plugin (ARM64 versions)
         run: |
           cd build/linux/x64/release/bundle
-          # Use specific stable versions instead of broken 'continuous'
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-x86_64.AppImage
+          # Detect architecture and download correct version
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ]; then
+            LINUXDEPLOY_ARCH="aarch64"
+            PLUGIN_ARCH="aarch64"
+          else
+            LINUXDEPLOY_ARCH="x86_64"
+            PLUGIN_ARCH="x86_64"
+          fi
+          echo "Building for architecture: $ARCH"
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-${LINUXDEPLOY_ARCH}.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-${PLUGIN_ARCH}.AppImage
           chmod +x linuxdeploy-*.AppImage
           # Verify they work
-          ./linuxdeploy-x86_64.AppImage --version
-          ./linuxdeploy-plugin-appimage-x86_64.AppImage --version
-          mv linuxdeploy-plugin-appimage-x86_64.AppImage linuxdeploy-plugin-appimage
+          ./linuxdeploy-${LINUXDEPLOY_ARCH}.AppImage --version
+          ./linuxdeploy-plugin-appimage-${PLUGIN_ARCH}.AppImage --version
+          mv linuxdeploy-plugin-appimage-${PLUGIN_ARCH}.AppImage linuxdeploy-plugin-appimage
 
       - name: Create AppDir structure
         run: |
@@ -127,10 +136,16 @@ jobs:
         run: |
           cd build/linux/x64/release/bundle
           export PATH=".:$PATH"
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ]; then
+            LINUXDEPLOY_BIN="linuxdeploy-aarch64.AppImage"
+          else
+            LINUXDEPLOY_BIN="linuxdeploy-x86_64.AppImage"
+          fi
           echo "=== AppDir structure ==="
           find AppDir -type f | head -30
           echo "=== Running linuxdeploy ==="
-          ./linuxdeploy-x86_64.AppImage \
+          ./$LINUXDEPLOY_BIN \
             --appdir AppDir \
             --plugin appimage \
             --output appimage \
@@ -143,8 +158,9 @@ jobs:
       - name: Rename AppImage
         run: |
           cd build/linux/x64/release/bundle
-          mv Kover-*.AppImage "Kover-${{ steps.version.outputs.version }}-x86_64.AppImage"
-          echo "APPIMAGE_PATH=build/linux/x64/release/bundle/Kover-${{ steps.version.outputs.version }}-x86_64.AppImage" >> $GITHUB_OUTPUT
+          ARCH=$(uname -m)
+          mv Kover-*.AppImage "Kover-${{ steps.version.outputs.version }}-${ARCH}.AppImage"
+          echo "APPIMAGE_PATH=build/linux/x64/release/bundle/Kover-${{ steps.version.outputs.version }}-${ARCH}.AppImage" >> $GITHUB_OUTPUT
         id: appimage
 
       - name: Upload AppImage to Release
