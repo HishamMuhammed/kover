@@ -91,7 +91,7 @@ jobs:
 
           cp -r lib/* AppDir/usr/lib/
           cp kover AppDir/usr/bin/
-          cp -r data AppDir/usr/bin/   # <-- CRITICAL: Flutter assets
+          cp -r data AppDir/usr/bin/
 
           cat > AppDir/usr/share/applications/kover.desktop << 'EOF'
           [Desktop Entry]
