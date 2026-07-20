@@ -69,7 +69,7 @@ jobs:
       - name: Build
         run: |
           flutter build apk --release --build-name=${{ needs.version.outputs.version }} --build-number=${{ needs.version.outputs.build_number }}
-          env:
+        env:
           KEYSTORE_PATH: "upload-keystore.jks"
           KEYSTORE_PASSWORD: ${{ secrets.GOOGLE_PLAY_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.GOOGLE_PLAY_KEYSTORE_ALIAS }}
